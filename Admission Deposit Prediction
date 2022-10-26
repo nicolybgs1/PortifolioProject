@@ -1,0 +1,644 @@
+/*Create Library*/
+
+libname final '/home/u62375651/sasuser.v94/Final Project';
+
+/*Import Data*/
+proc import datafile="/home/u62375621/sasuser.v94/Final Project/healthcare_data.csv"
+        out=final.Healthcare
+        dbms=csv
+        replace; /* if this file is already here so it will replace it */
+     getnames=yes;
+run;
+
+
+proc contents data = final.Healthcare;
+run;
+
+
+/*Rename*/
+data final.Healthcare1;
+set final.Healthcare (rename = ('Available Extra Rooms in Hospita'n = Available_Extra_Rooms   'Type of Admission'n = Type_of_Admission  'Severity of Illness'n = Severity_of_Illness 'Visitors with Patient'n = Visitors_with_Patient 'Stay (in days)'n = Stay_in_day));
+run;
+
+
+/*Summary - contiunuous*/
+proc means data = final.Healthcare1 n missing mean median max min maxdec=2; 
+var Available_Extra_Rooms staff_available Visitors_with_Patient Admission_Deposit;
+run;
+
+/*Summary - category*/
+%macro detail_Cat(var1);
+proc freq data = final.Healthcare1;
+table &var1 / nocol norow ;
+run; 
+%mend;
+
+%detail_Cat(Department);
+%detail_Cat(Ward_Facility_Code);
+%detail_Cat(doctor_name);
+%detail_Cat(gender);
+%detail_Cat(Type_of_Admission);
+%detail_Cat(Severity_of_Illness);
+%detail_Cat(health_conditions);
+%detail_Cat(Insurance);
+%detail_Cat(age);
+
+/*distinct ID*/
+
+proc sql;
+create table id as
+select distinct patientid
+from final.Healthcare1;
+quit;
+run;
+
+/*Creating derived variable*/
+/*Department*/
+proc sql;
+create table final.Avg_Admission as
+select department, avg(Admission_Deposit) as Avg_Admission_Department
+from final.healthcare1
+group by department;
+quit;
+
+
+data final.healthcare1copy;
+set final.healthcare1;
+proc sort data = final.healthcare1copy out = final.healthcare1copy;
+by department;
+run;
+
+
+Data final.healthcare2;
+merge final.healthcare1copy(in = a) final.Avg_Admission(in = b);
+by department;
+if a = 1;
+run;
+
+/*Ward_Facility_Code*/
+proc sql;
+create table final.Avg_Admission_WardCode as
+select Ward_Facility_Code, avg(Admission_Deposit) as Avg_Admission_WardCode
+from final.healthcare1
+group by Ward_Facility_Code;
+quit;
+
+data final.healthcare2copy;
+set final.healthcare2;
+proc sort data = final.healthcare2copy out = final.healthcare2copy;
+by Ward_Facility_Code;
+run;
+
+Data final.healthcare3;
+merge final.healthcare2copy(in = a) final.Avg_Admission_WardCode(in = b);
+by Ward_Facility_Code;
+if a = 1;
+run;
+
+/*Doctor name*/
+proc sql;
+create table final.Avg_Admission_DocName as
+select doctor_name, avg(Admission_Deposit) as Avg_Admission_DocName
+from final.healthcare1
+group by doctor_name;
+quit;
+
+data final.healthcare3copy;
+set final.healthcare3;
+proc sort data = final.healthcare3copy out = final.healthcare3copy;
+by doctor_name;
+run;
+
+Data final.healthcare4;
+merge final.healthcare3copy(in = a) final.Avg_Admission_DocName(in = b);
+by doctor_name;
+if a = 1;
+run;
+
+/*Type of Admission*/
+proc sql;
+create table final.Avg_Admission_TypeAdmission as
+select Type_of_Admission, avg(Admission_Deposit) as Avg_Admission_TypeAdmission
+from final.healthcare1
+group by Type_of_Admission;
+quit;
+
+data final.healthcare4copy;
+set final.healthcare4;
+proc sort data = final.healthcare4copy out = final.healthcare4copy;
+by Type_of_Admission;
+run;
+
+Data final.healthcare5;
+merge final.healthcare4copy(in = a) final.Avg_Admission_TypeAdmission(in = b);
+by Type_of_Admission;
+if a = 1;
+run;
+
+/* Severity of Illness*/
+proc sql;
+create table final.Avg_Admission_Servill as
+select Severity_of_Illness, avg(Admission_Deposit) as Avg_Admission_Servill
+from final.healthcare1
+group by Severity_of_Illness;
+quit;
+
+data final.healthcare5copy;
+set final.healthcare5;
+proc sort data = final.healthcare5copy out = final.healthcare5copy;
+by Severity_of_Illness;
+run;
+
+Data final.healthcare6;
+merge final.healthcare5copy(in = a) final.Avg_Admission_Servill(in = b);
+by Severity_of_Illness;
+if a = 1;
+run;
+
+/* health_conditions*/
+proc sql;
+create table final.Avg_Admission_health_conditions as
+select health_conditions, avg(Admission_Deposit) as Avg_Admission_health_conditions
+from final.healthcare1
+group by health_conditions;
+quit;
+
+data final.healthcare6copy;
+set final.healthcare6;
+proc sort data = final.healthcare6copy out = final.healthcare6copy;
+by health_conditions;
+run;
+
+Data final.healthcare7;
+merge final.healthcare6copy(in = a) final.Avg_Admission_health_conditions(in = b);
+by health_conditions;
+if a = 1;
+run;
+
+/* Age range*/
+proc sql;
+create table final.Avg_Admission_age as
+select age, avg(Admission_Deposit) as Avg_Admission_age
+from final.healthcare1
+group by age;
+quit;
+
+data final.healthcare7copy;
+set final.healthcare7;
+proc sort data = final.healthcare7copy out = final.healthcare7copy;
+by age;
+run;
+
+Data final.healthcare8;
+merge final.healthcare7copy(in = a) final.Avg_Admission_age(in = b);
+by age;
+if a = 1;
+run;
+
+/*Summary - contiunuous*/
+proc means data = final.Healthcare8 n missing mean median max min maxdec=2; 
+var Avg_Admission_Department Avg_Admission_WardCode Avg_Admission_DocName Avg_Admission_TypeAdmission Avg_Admission_Servill Avg_Admission_health_conditions Avg_Admission_age;
+run;
+
+/*Box plot- continuous*/
+data final.Healthcare8;
+set final.Healthcare8;
+rec_no =_n_;
+run;
+
+
+option mprint;
+%macro COUNTVAR_Analysis(var1);
+PROC sgscatter  DATA = final.Healthcare8;
+   PLOT &var1.*rec_no;
+   title &var1' - Scatter Plot';
+RUN; 
+
+proc sgscatter data = final.Healthcare8; 
+compare y = &var1  x = rec_no / ellipse =(alpha = 0.01 type = predicted); 
+title &var1' - Scatter Plot'; 
+title2 '-- with 99% prediction ellipse --'; 
+run;
+
+PROC SGPLOT  DATA = final.Healthcare8;
+   VBOX &var1;
+   title &var1' - Box Plot';
+RUN; 
+
+proc univariate data=final.Healthcare8;
+   var &var1;
+   histogram;
+   output out= &var1 pctlpts  =0 0.1 0.2 0.3 0.4 0.5 1 2.5 5 10 90 95 97.5 99 99.5 99.6 99.7 99.8 99.9 100 pctlpre  = P;
+run;
+%mend;
+
+
+%COUNTVAR_Analysis(Available_Extra_Rooms);
+%COUNTVAR_Analysis(staff_available);
+%COUNTVAR_Analysis(Visitors_with_Patient);
+%COUNTVAR_Analysis(Admission_Deposit);
+%COUNTVAR_Analysis(Stay_in_day);
+%COUNTVAR_Analysis(Avg_Admission_Department);
+%COUNTVAR_Analysis(Avg_Admission_WardCode);
+%COUNTVAR_Analysis(Avg_Admission_DocName);
+%COUNTVAR_Analysis(Avg_Admission_TypeAdmission);
+%COUNTVAR_Analysis(Avg_Admission_Servill);
+%COUNTVAR_Analysis(Avg_Admission_health_conditions);
+%COUNTVAR_Analysis(Avg_Admission_age);
+
+      
+
+/*Bar Chart- catogory*/
+
+OPTIONS MPRINT;
+
+%macro Categ(var);
+	proc sql;
+	Create table &var._tab as 
+	select &var, (count(*)/ (select count(*)from final.Healthcare1)*100) as &var._perc
+	from final.Healthcare1
+	group by &var;
+	quit;
+		
+	proc SGPLOT data = &var._tab;
+	vbar &var/ response=&var._perc stat=mean;
+	title "Count Rate for &var";
+	run;
+
+	proc print data = &var._tab; 
+	run;
+%mend;
+
+
+%Categ(Department);
+%Categ(Ward_Facility_Code);
+%Categ(doctor_name);
+%Categ(Age);
+%Categ(gender);
+%Categ(Type_of_Admission);
+%Categ(Severity_of_Illness);
+%Categ(health_conditions);
+%Categ(Insurance);
+
+
+/*Cut-off outliers*/
+data final.healthcare8;
+set final.healthcare8;
+if Available_Extra_Rooms > 11 then delete;
+run;
+
+data final.healthcare8;
+set final.healthcare8;
+if Visitors_with_Patient > 24 then delete;
+run;
+
+data final.healthcare8;
+set final.healthcare8;
+if Admission_Deposit > 8812.516985 then delete;
+run;
+
+data final.healthcare8;
+set final.healthcare8;
+if Stay_In_Day > 44 then delete;
+run;
+
+data final.Healthcare8;
+set final.Healthcare8;
+if Avg_Admission_age > 4864 then delete;
+run;
+
+/*Check variables with function after the treating outliers*/
+%COUNTVAR_Analysis(Available_Extra_Rooms);
+%COUNTVAR_Analysis(staff_available);
+%COUNTVAR_Analysis(Visitors_with_Patient);
+%COUNTVAR_Analysis(Admission_Deposit);
+%COUNTVAR_Analysis(Stay_in_day);
+%COUNTVAR_Analysis(Avg_Admission_Department);
+%COUNTVAR_Analysis(Avg_Admission_WardCode);
+%COUNTVAR_Analysis(Avg_Admission_DocName);
+%COUNTVAR_Analysis(Avg_Admission_TypeAdmission);
+%COUNTVAR_Analysis(Avg_Admission_Servill);
+%COUNTVAR_Analysis(Avg_Admission_health_conditions);
+%COUNTVAR_Analysis(Avg_Admission_age);
+
+/*Dummy variables creation*/
+data final.Healthcare9;
+set final.Healthcare8;
+
+if insurance="Yes" then insurance_dummy=1;
+else insurance_dummy=0;
+
+if gender="Male" then genderM_dummy=1;
+else genderM_dummy=0;
+
+if gender="Female" then genderF_dummy=1;
+else genderF_dummy=0;
+run;
+
+
+
+/*BiVariate analysis for categorical variables*/
+%macro BivariateCat(attr,title); 
+
+proc sql;
+create table distr_&attr as select &attr, avg(Admission_Deposit) as avg_AD from final.Healthcare9 group by &attr;
+quit;
+
+proc SGPLOT data = distr_&attr;
+vbar &attr/ response=avg_AD stat=mean;
+title "&title";
+run;
+
+%mend;
+
+%BivariateCat(insurance_dummy,insurance);
+%BivariateCat(genderM_dummy,genderM);
+%BivariateCat(genderF_dummy,genderF);
+
+
+
+/*BiVariate analysis for continuous variables*/
+proc corr data = final.Healthcare8 plots = matrix ;
+VAR Admission_Deposit Available_Extra_Rooms Stay_in_day Visitors_with_Patient staff_available
+Avg_Admission_Department Avg_Admission_WardCode Avg_Admission_DocName Avg_Admission_TypeAdmission Avg_Admission_Servill Avg_Admission_health_conditions Avg_Admission_age;
+run;
+
+/*checking for multicolinearity and doing all the necessary iterations */
+
+%let VarList = Available_Extra_Rooms Stay_in_day Visitors_with_Patient staff_available
+Avg_Admission_Department Avg_Admission_WardCode Avg_Admission_DocName Avg_Admission_TypeAdmission 
+Avg_Admission_Servill Avg_Admission_health_conditions Avg_Admission_age insurance_dummy genderM_dummy
+genderF_dummy;
+run;
+
+
+proc reg data= final.Healthcare9;
+  model Admission_Deposit = &VarList/ vif tol collin;
+quit;
+
+
+%let VarList = Available_Extra_Rooms Stay_in_day Visitors_with_Patient staff_available
+Avg_Admission_WardCode Avg_Admission_DocName Avg_Admission_TypeAdmission 
+Avg_Admission_Servill Avg_Admission_health_conditions Avg_Admission_age insurance_dummy genderM_dummy
+genderF_dummy;
+run;
+
+proc reg data= final.Healthcare9;
+  model Admission_Deposit = &VarList/ vif tol collin;
+quit;
+
+
+%let VarList = Available_Extra_Rooms Stay_in_day Visitors_with_Patient staff_available
+Avg_Admission_WardCode Avg_Admission_DocName Avg_Admission_TypeAdmission 
+Avg_Admission_Servill Avg_Admission_health_conditions Avg_Admission_age insurance_dummy genderM_dummy;
+run;
+
+proc reg data= final.Healthcare9;
+  model Admission_Deposit = &VarList/ vif tol collin;
+quit;
+
+%let VarList = Available_Extra_Rooms Stay_in_day Visitors_with_Patient staff_available
+Avg_Admission_WardCode Avg_Admission_TypeAdmission 
+Avg_Admission_Servill Avg_Admission_health_conditions Avg_Admission_age insurance_dummy genderM_dummy;
+run;
+
+proc reg data= final.Healthcare9;
+  model Admission_Deposit = &VarList;
+quit;
+
+
+/*Running the proc corr again after checking for multicolinearity*/
+proc corr data = final.Healthcare9 plots = matrix ;
+VAR Admission_Deposit Available_Extra_Rooms Stay_in_day Visitors_with_Patient staff_available
+Avg_Admission_WardCode Avg_Admission_TypeAdmission 
+Avg_Admission_Servill Avg_Admission_health_conditions Avg_Admission_age insurance_dummy genderM_dummy;
+run;
+
+/*Available_Extra_Rooms and Avg_Admission_WardCode were the two variables with the highest correlation*/
+
+
+/*BOOT STRAPPING MACRO*/
+/* A. Create test groups */
+*Dividing the sample between test(20%) & train;
+%let testPercentage = 20;
+%put %eval(&testPercentage*464053/100);
+
+%let seed = 100;
+
+%macro bootstrapping(testPercentage,seed);
+proc sql outobs = %eval(&testPercentage*464053/100);
+create table test as
+select * from final.Healthcare9
+order by ranuni(&seed);
+quit;
+
+/* B. Create train groups */
+*Selecting in train what is not in test;
+proc sql;
+create table train as 
+select * from final.Healthcare9
+except
+select * from test;
+quit;
+
+/* C. run regresion model */
+proc reg data=train outest=healthpred;
+model Admission_Deposit = Available_Extra_Rooms Stay_in_day Visitors_with_Patient
+Avg_Admission_WardCode Avg_Admission_Servill Avg_Admission_age;
+Output Out= TrainOut P= predicted R = residual; 
+store out = ModelOut; 
+run;
+
+/* D. Run the model on test data */
+proc plm source = ModelOut;
+score data=test out=TestOut pred=predicted residual = residual;
+run;
+
+/* E. check residual metrics on test data */
+proc sql;
+create table residual_metrics_test as
+select round(mean(abs(residual/Admission_Deposit))*100,1) as mape, round(sqrt(mean(residual**2)),1) as rmse
+from TestOut;
+quit;
+
+proc print data = residual_metrics_test; run;
+%mend;
+
+/*Testing out the macro with different combinations of seed and percentage*/
+%bootstrapping(15,100);
+%bootstrapping(15,200);
+%bootstrapping(20,100);
+%bootstrapping(20,200);
+%bootstrapping(25,100);
+%bootstrapping(25,200);
+%bootstrapping(30,100);
+%bootstrapping(30,200);
+
+
+/*Finalizing with the best model selected from bootstrapping*/
+%let testPercentage = 25;
+%let seed = 100;
+
+proc sql outobs = %eval(&testPercentage*464053/100);
+create table test as
+select * from final.Healthcare9
+order by ranuni(&seed);
+quit;
+
+proc sql;
+create table train as 
+select * from final.Healthcare9
+except
+select * from test;
+quit;
+
+/* Run regresion model, deleting insignificant variables*/
+proc reg data=train outest=healthpred;
+model Admission_Deposit = Available_Extra_Rooms Stay_in_day Visitors_with_Patient staff_available
+Avg_Admission_WardCode Avg_Admission_TypeAdmission 
+Avg_Admission_Servill Avg_Admission_health_conditions Avg_Admission_age insurance_dummy genderM_dummy;
+Output Out= TrainOut P= predicted R = residual; 
+store out = ModelOut; 
+run;
+
+/*staff_available is coming to be insignificant so we remove it and run regression again*/
+proc reg data=train outest=healthpred;
+model Admission_Deposit = Available_Extra_Rooms Stay_in_day Visitors_with_Patient
+Avg_Admission_WardCode Avg_Admission_TypeAdmission 
+Avg_Admission_Servill Avg_Admission_health_conditions Avg_Admission_age insurance_dummy genderM_dummy;
+Output Out= TrainOut P= predicted R = residual; 
+store out = ModelOut; 
+run;
+
+/*genderM_dummy is coming to be insignificant so we remove it and run regression again*/
+proc reg data=train outest=healthpred;
+model Admission_Deposit = Available_Extra_Rooms Stay_in_day Visitors_with_Patient
+Avg_Admission_WardCode Avg_Admission_TypeAdmission 
+Avg_Admission_Servill Avg_Admission_health_conditions Avg_Admission_age insurance_dummy;
+Output Out= TrainOut P= predicted R = residual; 
+store out = ModelOut; 
+run;
+
+/*Avg_Admission_TypeAdmission is coming to be insignificant so we remove it and run regression again*/
+proc reg data=train outest=healthpred;
+model Admission_Deposit = Available_Extra_Rooms Stay_in_day Visitors_with_Patient
+Avg_Admission_WardCode Avg_Admission_Servill Avg_Admission_health_conditions Avg_Admission_age insurance_dummy;
+Output Out= TrainOut P= predicted R = residual; 
+store out = ModelOut; 
+run;
+
+/*Avg_Admission_health_conditions is coming to be insignificant so we remove it and run regression again*/
+proc reg data=train outest=healthpred;
+model Admission_Deposit = Available_Extra_Rooms Stay_in_day Visitors_with_Patient
+Avg_Admission_WardCode Avg_Admission_Servill Avg_Admission_age insurance_dummy;
+Output Out= TrainOut P= predicted R = residual; 
+store out = ModelOut; 
+run;
+
+/*insurance_dummy is coming to be insignificant so we remove it and run regression again*/
+proc reg data=train outest=healthpred;
+model Admission_Deposit = Available_Extra_Rooms Stay_in_day Visitors_with_Patient
+Avg_Admission_WardCode Avg_Admission_Servill Avg_Admission_age;
+Output Out= TrainOut P= predicted R = residual; 
+store out = ModelOut; 
+run;
+
+/*Final regression model*/
+proc reg data=train outest=healthpred;
+model Admission_Deposit = Available_Extra_Rooms Stay_in_day Visitors_with_Patient
+Avg_Admission_WardCode Avg_Admission_Servill Avg_Admission_age;
+Output Out= TrainOut P= predicted R = residual; 
+store out = ModelOut; 
+run;
+
+/*Assumptions*/
+proc means data = TrainOut;
+var residual;
+run;
+*plotting residuals;
+PROC sgscatter  DATA = TrainOut;
+   PLOT residual*rec_no;
+   title 'residual - Scatter Plot';
+RUN; 
+/*(Assumption 1) Residual mean is 0*/
+proc univariate data = TrainOut;
+   var residual;
+   histogram;
+run;
+/* (Assumption 2) it is almost normally distributed*/
+
+
+/* (Assumption 3) We dont see any trend on the distribuition*/
+PROC sgscatter  DATA = TrainOut;
+   PLOT residual*predicted; 
+   title 'residual - predicted Scatter Plot';
+RUN; 
+
+
+
+/*(Assumption 4) checking if the residuals are independent of predicted values for Available_Extra_Rooms*/
+PROC sgscatter  DATA = TrainOut;
+   PLOT residual*Available_Extra_Rooms;
+   title 'residual vs Available_Extra_Rooms- Scatter Plot';
+RUN; 
+
+/*checking if the residuals are independent of predicted values for Stay_in_day*/
+PROC sgscatter  DATA = TrainOut;
+   PLOT residual*Stay_in_day;
+   title 'residual vs Stay_in_day- Scatter Plot';
+RUN; 
+
+/*checking if the residuals are independent of predicted values for Visitors_with_Patient*/
+PROC sgscatter  DATA = TrainOut;
+   PLOT residual*Visitors_with_Patient;
+   title 'residual vs Visitors_with_Patient- Scatter Plot';
+RUN; 
+
+/*checking if the residuals are independent of predicted values for Avg_Admission_WardCode*/
+PROC sgscatter  DATA = TrainOut;
+   PLOT residual*Avg_Admission_WardCode;
+   title 'residual vs Avg_Admission_WardCode- Scatter Plot';
+RUN; 
+
+/*checking if the residuals are independent of predicted values for Avg_Admission_Servill*/
+PROC sgscatter  DATA = TrainOut;
+   PLOT residual*Avg_Admission_Servill;
+   title 'residual vs Avg_Admission_Servill- Scatter Plot';
+RUN; 
+
+/*checking if the residuals are independent of predicted values for Avg_Admission_age*/
+PROC sgscatter  DATA = TrainOut;
+   PLOT residual*Avg_Admission_age;
+   title 'residual vs Avg_Admission_age- Scatter Plot';
+RUN; 
+
+/*Residuals are independent. No pattern is shown*/
+
+/*Checking for residual metrics*/
+/*MAPE of 16 and RMSE of 1025*/
+proc sql;
+create table residual_metrics_train as
+select mean(abs(residual/Admission_Deposit))*100 as mape , sqrt(mean(residual**2)) as rmse
+from TrainOut;
+quit;
+
+/* Running the  model on test data */
+proc plm source = ModelOut;
+score data=test out=TestOut pred=predicted residual = residual;
+run;
+
+/* 14. check residual metrics on test data */
+/*MAPE of 16 and RMSE of 1020*/
+proc sql;
+create table residual_metrics_test as
+select round(mean(abs(residual/Admission_Deposit)*100),1) as mape, round(sqrt(mean(residual**2)),1) as rmse
+from TestOut;
+quit;
+
+/* the rmse & mape are similar to what we obtained in training data. 
+So the model is consistent on new data as well */
+
+
+
+
+
