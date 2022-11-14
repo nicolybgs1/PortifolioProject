@@ -1,0 +1,160 @@
+/*
+Task 1 - Use retail segmentation data. Build value segmentation with profiling.
+
+Use customers.csv & transactions.csv
+
+Step 1) Calculate 33 & 66 percentile cutoff for total spend & total visits.
+
+Step 2) Store the percentile cutoffs in macro variables . P33_spend, p66_spend, p33_visit, p66_visit
+
+Step 3) Give Score basis spend & visits
+
+Step 4) Calculate total score by adding spend & visit scores
+
+Step 5) Create the final segment - 
+
+Step 6) Perform the profiling basis numeric variables, by taking the avg of these variables - 
+Total_spend, Total_visit, Instore_spend, Instore_visit, online_spend, Online_visit. Also show Count of each segment.
+
+Step 7) Write a macro program to perform profiling of value segments across the following variables - 
+loyalty, preferred_store_format, lifestyle, gender
+
+The macro should take as input one column name (from the list given above) . It should then generate the cross tab for value segment vs the column name.
+*/
+
+/*Importing and preparing the data*/
+libname segment '/home/u43385309/sasuser.v94/RetailSegmentation';
+
+PROC IMPORT DATAFILE = "/home/u43385309/sasuser.v94/RetailSegmentation/transactions.csv" replace
+DBMS = CSV OUT = segment.transactions;
+GETNAMES = YES;
+RUN;
+PROC PRINT DATA = segment.transactions; 
+RUN;
+
+PROC IMPORT DATAFILE = "/home/u43385309/sasuser.v94/RetailSegmentation/customers.csv" 
+DBMS = CSV OUT = segment.customers replace;
+GETNAMES = YES;
+RUN;
+PROC PRINT DATA = segment.customers; 
+RUN;
+
+data segment.customers;
+set segment.customers;
+if  (preferred_store_format = 'NA') | (lifestyle = 'NA') | (gender = 'NA') then delete;
+run;
+
+proc sort data = segment.customers out = segment.customers;
+by hhid;
+run;
+
+proc sort data = segment.transactions out = segment.transactions;
+by hhid;
+run;
+
+data segment.singleview;
+merge segment.transactions (in = a) segment.customers (in = b);
+by hhid;
+if a = 1;
+run;
+
+/* Step 1) Calculate 33 & 66 percentile cutoff for total spend & total visits. */
+
+proc univariate data = segment.singleview;
+var TotalVisits;
+output out = VisitCutoffs pctlpts= 33 66 pctlpre=p;
+run;
+
+proc univariate data = segment.singleview;
+var TotalSpend;
+output out = SpendCutoffs pctlpts= 33 66 pctlpre=p;
+run;
+
+/* Step 2) Store the percentile cutoffs in macro variables . 
+P33_spend, p66_spend, p33_visit, p66_visit */
+
+proc sql;
+select p33 into :p33_visit from VisitCutoffs;
+select p66 into :p66_visit from VisitCutoffs;
+select p33 into :p33_spend from SpendCutoffs;
+select p66 into :p66_spend from SpendCutoffs;
+quit;
+
+%put &p33_visit;
+
+/* Step 3) Give Score basis spend & visits */
+
+data segment.singleview;
+set segment.singleview;
+
+If TotalSpend > &p66_spend then Score_Spend = 3;
+else if TotalSpend < &p33_spend then Score_Spend = 1;
+else Score_Spend = 2;
+
+If TotalVisits > &p66_visit then Score_Visit = 3;
+else if TotalVisits < &p33_visit then Score_Visit = 1;
+else Score_Visit = 2;
+
+run;
+
+/* Step 4) Calculate total score by adding spend & visit scores */
+data segment.singleview;
+set segment.singleview;
+Score_Total = Score_Visit + Score_Spend;
+run;
+
+/* Step 5) Create the final segment */
+/* proc freq will help us define the cutoffs for our segment basis the total score */
+proc freq data = segment.singleview2;
+tables Score_Total;
+run;
+
+data segment.singleview;
+set segment.singleview;
+format Segment $ 10.;
+if Score_Total = 6 then Segment = 'Champion';
+else if Score_Total <= 3 then Segment = 'Losers';
+else Segment = 'Potential';
+run;
+
+/* Step 6) Perform the profiling basis numeric variables, by taking the avg of these variables - 
+Total_spend, Total_visit, Instore_spend, Instore_visit, online_spend, Online_visit. Also show Count of each segment.
+*/
+proc sql;
+select Segment, count(1) as CountCust, 
+				avg(TotalSpend) as AvgSpend,
+				avg(TotalVisits) as AvgVisit,
+				avg(InstoreSpend) as AvgInstoreSpend,
+				avg(InstoreVisits) as AvgInstoreVisit,
+				avg(onlineSpend) as AvgOnlineSpend,
+				avg(onlineVisits) as AvgOnlineVisit
+from segment.singleview
+group by Segment;
+quit;				
+				
+proc means data = segment.singleview mean n maxdec = 0;
+var TotalSpend TotalVisits InstoreSpend InstoreVisits onlineSpend onlineVisits;
+class Segment;
+run;
+
+/* Step 7) Write a macro program to perform profiling of value segments across the following variables - 
+loyalty, preferred_store_format, lifestyle, gender
+
+The macro should take as input one column name (from the list given above). 
+It should then generate the cross tab for value segment vs the column name.
+*/
+
+proc freq data = segment.singleview;
+tables Segment*loyalty / nofreq nocol nopercent;
+run;
+
+%macro profile(var);
+proc freq data = segment.singleview;
+tables Segment * &var / nofreq nocol nopercent;
+run;
+%mend;
+
+%profile(loyalty);
+%profile(preferred_store_format);
+%profile(lifestyle);
+%profile(gender);
