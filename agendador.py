@@ -11,10 +11,6 @@ import altair as alt
 # Título da página
 st.title("Agendador de Bombeios")
 
-# Exibir a data de amanhã no início da página
-tomorrow = pd.to_datetime("today") + pd.Timedelta(days=1)
-st.markdown(f"**Data:** {tomorrow.strftime('%d/%m/%Y')}")
-
 # Inputs para coletar os dados
 company = st.text_input("Companhia")
 product = st.text_input("Produto")
@@ -28,11 +24,13 @@ if st.button("Adicionar Bombeio"):
     if "data" not in st.session_state:
         st.session_state.data = []
 
-    # Combinar a data de amanhã com as horas de início e fim
-    # Pega a data de amanhã e combina com as horas fornecidas
+    # Combinar a data de hoje com as horas de início e fim
+    today = pd.to_datetime("today").normalize()  # Pega a data atual sem o horário
+
+    # Converter as horas de texto para datetime
     try:
-        start_datetime = pd.to_datetime(tomorrow.strftime("%Y-%m-%d") + " " + start_time)
-        end_datetime = pd.to_datetime(tomorrow.strftime("%Y-%m-%d") + " " + end_time)
+        start_datetime = pd.to_datetime(today.strftime("%Y-%m-%d") + " " + start_time)
+        end_datetime = pd.to_datetime(today.strftime("%Y-%m-%d") + " " + end_time)
     except ValueError:
         st.error("Formato de hora inválido. Use HH:MM.")
         start_datetime = pd.NaT
@@ -64,15 +62,14 @@ if "data" in st.session_state:
     # Criar gráfico de Gantt usando Altair
     st.subheader("Gráfico Gantt de Bombeios")
 
-    # Ajustar o gráfico para mostrar apenas horas no eixo X (formato 24 horas)
     chart = alt.Chart(df).mark_bar().encode(
-        x=alt.X('hoursminutes(Início):T', title='Hora de Início', axis=alt.Axis(format='%H:%M', labelAngle=-45)),
-        x2=alt.X('hoursminutes(Fim):T', title='Hora de Fim'),
+        x='Início:T',
+        x2='Fim:T',
         y='Companhia:N',
         color='Produto:N',
         tooltip=['Companhia', 'Produto', 'Cota', 'Início', 'Fim']
     ).properties(
-        title='Gráfico Gantt de Bombeios (Amanhã)'
+        title='Gráfico Gantt'
     )
 
     st.altair_chart(chart, use_container_width=True)
