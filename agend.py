@@ -11,6 +11,10 @@ import altair as alt
 # Título da página
 st.title("Agendador de Bombeios")
 
+# Exibir a data de amanhã no início da página
+tomorrow = pd.to_datetime("today") + pd.Timedelta(days=1)
+st.markdown(f"**Data:** {tomorrow.strftime('%d/%m/%Y')}")
+
 # Inputs para coletar os dados
 company = st.text_input("Companhia")
 product = st.text_input("Produto")
@@ -73,6 +77,7 @@ if "data" in st.session_state:
     )
 
     st.altair_chart(chart, use_container_width=True)
+
 
 
 # In[4]:
