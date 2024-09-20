@@ -28,10 +28,8 @@ if st.button("Adicionar Bombeio"):
     if "data" not in st.session_state:
         st.session_state.data = []
 
-    # Combinar a data de hoje com as horas de início e fim
-    today = pd.to_datetime("today").normalize()  # Pega a data atual sem o horário
-
-    # Converter as horas de texto para datetime
+    # Combinar a data de amanhã com as horas de início e fim
+    # Pega a data de amanhã e combina com as horas fornecidas
     try:
         start_datetime = pd.to_datetime(tomorrow.strftime("%Y-%m-%d") + " " + start_time)
         end_datetime = pd.to_datetime(tomorrow.strftime("%Y-%m-%d") + " " + end_time)
@@ -57,28 +55,24 @@ if st.button("Adicionar Bombeio"):
 if "data" in st.session_state:
     df = pd.DataFrame(st.session_state.data)
     st.subheader("Dados de Bombeios Agendados")
+    st.write(df)
 
     # Garantir que as colunas 'Início' e 'Fim' estão no formato datetime
     df['Início'] = pd.to_datetime(df['Início'], errors='coerce')
     df['Fim'] = pd.to_datetime(df['Fim'], errors='coerce')
 
-    # Calcular a duração do bombeio
-    df['Duração'] = df['Fim'] - df['Início']
-
-    # Exibir os dados com a coluna de duração
-    st.write(df)
-
     # Criar gráfico de Gantt usando Altair
     st.subheader("Gráfico Gantt de Bombeios")
 
+    # Ajustar o gráfico para mostrar apenas horas no eixo X (formato 24 horas)
     chart = alt.Chart(df).mark_bar().encode(
-        x=alt.X('Início:T', axis=alt.Axis(format='%H:%M')),  # Formato 24 horas
-        x2='Fim:T',
+        x=alt.X('hoursminutes(Início):T', title='Hora de Início', axis=alt.Axis(format='%H:%M', labelAngle=-45)),
+        x2=alt.X('hoursminutes(Fim):T', title='Hora de Fim'),
         y='Companhia:N',
         color='Produto:N',
-        tooltip=['Companhia', 'Produto', 'Cota', 'Início', 'Fim', 'Duração']
+        tooltip=['Companhia', 'Produto', 'Cota', 'Início', 'Fim']
     ).properties(
-        title='Gráfico Gantt'
+        title='Gráfico Gantt de Bombeios (Amanhã)'
     )
 
     st.altair_chart(chart, use_container_width=True)
