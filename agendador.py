@@ -29,12 +29,12 @@ if st.button("Adicionar Bombeio"):
         st.session_state.data = []
 
     # Combinar a data de hoje com as horas de início e fim
-    tomorrow = pd.to_datetime("tomorrow").normalize()  # Pega a data atual sem o horário
+    tomorrow = pd.to_datetime("today").normalize()  # Pega a data atual sem o horário
 
     # Converter as horas de texto para datetime
     try:
-        start_datetime = pd.to_datetime(tomorrow.strftime("%Y-%m-%d") + " " + start_time)
-        end_datetime = pd.to_datetime(tomorrow.strftime("%Y-%m-%d") + " " + end_time)
+        start_datetime = pd.to_datetime(today.strftime("%Y-%m-%d") + " " + start_time)
+        end_datetime = pd.to_datetime(today.strftime("%Y-%m-%d") + " " + end_time)
     except ValueError:
         st.error("Formato de hora inválido. Use HH:MM.")
         start_datetime = pd.NaT
