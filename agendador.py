@@ -33,8 +33,8 @@ if st.button("Adicionar Bombeio"):
 
     # Converter as horas de texto para datetime
     try:
-        start_datetime = pd.to_datetime(today.strftime("%Y-%m-%d") + " " + start_time)
-        end_datetime = pd.to_datetime(today.strftime("%Y-%m-%d") + " " + end_time)
+        start_datetime = pd.to_datetime(tomorrow.strftime("%Y-%m-%d") + " " + start_time)
+        end_datetime = pd.to_datetime(tomorrow.strftime("%Y-%m-%d") + " " + end_time)
     except ValueError:
         st.error("Formato de hora inválido. Use HH:MM.")
         start_datetime = pd.NaT
