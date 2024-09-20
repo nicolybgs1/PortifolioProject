@@ -57,21 +57,26 @@ if st.button("Adicionar Bombeio"):
 if "data" in st.session_state:
     df = pd.DataFrame(st.session_state.data)
     st.subheader("Dados de Bombeios Agendados")
-    st.write(df)
 
     # Garantir que as colunas 'Início' e 'Fim' estão no formato datetime
     df['Início'] = pd.to_datetime(df['Início'], errors='coerce')
     df['Fim'] = pd.to_datetime(df['Fim'], errors='coerce')
 
+    # Calcular a duração do bombeio
+    df['Duração'] = df['Fim'] - df['Início']
+
+    # Exibir os dados com a coluna de duração
+    st.write(df)
+
     # Criar gráfico de Gantt usando Altair
     st.subheader("Gráfico Gantt de Bombeios")
 
     chart = alt.Chart(df).mark_bar().encode(
-        x='Início:T',
+        x=alt.X('Início:T', axis=alt.Axis(format='%H:%M')),  # Formato 24 horas
         x2='Fim:T',
         y='Companhia:N',
         color='Produto:N',
-        tooltip=['Companhia', 'Produto', 'Cota', 'Início', 'Fim']
+        tooltip=['Companhia', 'Produto', 'Cota', 'Início', 'Fim', 'Duração']
     ).properties(
         title='Gráfico Gantt'
     )
