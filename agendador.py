@@ -64,7 +64,7 @@ if "data" in st.session_state:
 
     chart = alt.Chart(df).mark_bar().encode(
         x=alt.X('Início:T', axis=alt.Axis(format='%H:%M')),
-        x2=alt.X('Fim:T', axis=alt.Axis(format='%H:%M')),
+        x2='Fim:T',
         y='Companhia:N',
         color='Produto:N',
         tooltip=['Companhia', 'Produto', 'Cota', 'Início', 'Fim']
