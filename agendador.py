@@ -29,7 +29,7 @@ if st.button("Adicionar Bombeio"):
         st.session_state.data = []
 
     # Combinar a data de hoje com as horas de início e fim
-    today = pd.to_datetime("today").normalize()  # Pega a data atual sem o horário
+    tomorrow = pd.to_datetime("tomorrow").normalize()  # Pega a data atual sem o horário
 
     # Converter as horas de texto para datetime
     try:
