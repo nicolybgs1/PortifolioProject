@@ -59,10 +59,6 @@ if "data" in st.session_state:
     st.subheader("Dados de Bombeios Agendados")
     st.write(df)
 
-    # Garantir que as colunas 'Início' e 'Fim' estão no formato datetime
-    df['Início'] = pd.to_datetime(df['Início'], errors='coerce')
-    df['Fim'] = pd.to_datetime(df['Fim'], errors='coerce')
-
     # Criar gráfico de Gantt usando Altair
     st.subheader("Gráfico Gantt de Bombeios")
 
